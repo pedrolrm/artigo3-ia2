@@ -114,16 +114,16 @@ Para cada combinação de [Arquitetura $\times$ Regime], deve-se estratificar as
 
 ---
 
-## 6. Arquitetura de Diretórios Recomendada
+## 6. Arquitetura de Diretórios e Descrição Funcional dos Arquivos
 
 ```text
 artigo3-ia2/
-├── AGENTS.md                    # Este arquivo
+├── AGENTS.md                    # Este arquivo: diretrizes metodológicas e técnicas
 ├── README.md                    # Visão geral do repositório
-├── requirements.txt             # Dependências (torch, torchvision, timm, pytorch-grad-cam, etc.)
+├── requirements.txt             # Dependências (torch, torchvision, timm, etc.)
 ├── data/
-│   ├── raw/                     # Imagens e máscaras extraídas
-│   └── manifests/               # CSVs determinísticos de divisão:
+│   ├── raw/                     # Imagens e máscaras extraídas (ignorado no git)
+│   └── manifests/               # CSVs determinísticos de divisão (ignorados no git):
 │       ├── test.csv             # Conjunto de teste fixo (20%)
 │       ├── val.csv              # Conjunto de validação fixo (10%)
 │       ├── train_100.csv        # Treino integral (100%)
@@ -148,6 +148,41 @@ artigo3-ia2/
     ├── tables/                  # CSVs compilados com métricas diagnósticas e de XAI
     └── figures/                 # Gráficos comparativos e painéis qualitativos de FN
 ```
+
+### 6.1. Módulos Principais (`src/`)
+
+* **`src/dataset.py`:**
+  - **Função:** Implementar a classe PyTorch `Dataset` (`ChestXRayDataset`) que carrega pares de radiografias de tórax e respectivas máscaras pulmonares a partir dos manifestos CSV.
+  - **Requisitos de Implementação:** Carregar imagens em formato RGB ($224 \times 224$) com normalização ImageNet. Quando `return_mask=True`, carregar e redimensionar a máscara binária correspondente utilizando estritamente interpolação `nearest` para preservar valores discretos $\{0, 1\}$.
+* **`src/models.py`:**
+  - **Função:** Fábrica de instanciação de modelos com paridade de parâmetros (~22M vs ~25M).
+  - **Requisitos de Implementação:** Instanciar `resnet50` e `vit_small_patch16_224` via biblioteca `timm` com pesos oficiais do ImageNet-1k e cabeça binária (2 classes ou 1 logit). Expor funções auxiliares para contagem de parâmetros e identificação da camada-alvo para Grad-CAM (`layer4[-1]` na ResNet e `blocks[-1].norm1` no ViT, com função de `reshape_transform` para os tokens do Transformer).
+* **`src/train.py`:**
+  - **Função:** Gerenciador do loop de treinamento e validação para um dado modelo e regime.
+  - **Requisitos de Implementação:** Receber modelo, loaders de treino e validação, configurando otimizador `AdamW` ($weight\_decay = 1\times 10^{-2}$), scheduler com warmup e cosine decay. Executar *early stopping* monitorando o AUROC de validação (paciência de 7 épocas) e persistir o melhor checkpoint em `results/checkpoints/`.
+* **`src/evaluate.py`:**
+  - **Função:** Avaliação de métricas diagnósticas padronizadas no conjunto de teste.
+  - **Requisitos de Implementação:** Calcular Taxa de Falsos Negativos ($\text{FNR} = 1 - \text{Sensibilidade}$), Sensibilidade (Recall), Especificidade, Acurácia Balanceada, AUROC e contagens da matriz de confusão ($\text{TP}, \text{FN}, \text{TN}, \text{FP}$).
+* **`src/xai.py`:**
+  - **Função:** Motor uniforme de extração do Grad-CAM compatível com CNNs e Vision Transformers.
+  - **Requisitos de Implementação:** Implementar hooks para captura de ativações e gradientes na camada alvo. Para o ViT-Small, converter a sequência de tokens ($1D$) para grid espacial ($2D$) via `reshape_transform`. Ponderar ativações pelos gradientes médios, aplicar ReLU, interpolar bilinearmente para $224 \times 224$ e normalizar Min-Max para $[0, 1]$.
+* **`src/metrics_xai.py`:**
+  - **Função:** Biblioteca de métricas quantitativas de explicabilidade.
+  - **Requisitos de Implementação:** Implementar: (1) Entropia Espacial de Shannon normalizada $H(A) \in [0, 1]$ sobre o mapa de calor; (2) Fração de Energia no Pulmão ($\text{EFL} \in [0, 1]$) integrando sobre a máscara pulmonar ground-truth; (3) Vazamento de Fundo ($1 - \text{EFL}$); (4) Pointing Game (*Hit Rate* binário indicando se $\arg\max A$ reside na máscara).
+
+---
+
+### 6.2. Scripts de Execução (`scripts/`)
+
+* **`scripts/01_prepare_data.py`:**
+  - **Função:** Pipeline de descompactação e geração determinística dos manifestos CSV.
+  - **Requisitos de Implementação:** Extrair `COVID-19_Radiography_Dataset.zip` para `data/raw/` se necessário. Agrupar as 4 classes originais no mapeamento binário (0: Normal, 1: Patológico). Criar a divisão fixa estratificada (`seed=42`) gerando `data/manifests/test.csv` (20%), `val.csv` (10%) e `train_100.csv` (70%). Gerar os subconjuntos de treino aninhados (`train_50.csv`, `train_20.csv` e `train_5.csv`).
+* **`scripts/02_run_experiments.py`:**
+  - **Função:** Orquestrador sequencial de todos os treinamentos do estudo comparativo.
+  - **Requisitos de Implementação:** Iterar de forma reprodutiva sobre as 8 combinações experimentais: [ResNet-50, ViT-Small] $\times$ [5%, 20%, 50%, 100% de treino], acionando `src/train.py`. Registrar curvas de aprendizado em `results/logs/` e salvar pesos ótimos em `results/checkpoints/`.
+* **`scripts/03_analyze_fn_xai.py`:**
+  - **Função:** Auditoria de explicabilidade no Test Set e compilação de resultados do artigo.
+  - **Requisitos de Implementação:** Carregar os 8 modelos treinados, executar inferência sobre o Test Set imutável (`test.csv`), extrair Grad-CAM para todas as amostras e calcular métricas via `src/metrics_xai.py`. Estratificar por grupos diagnósticos (com ênfase no grupo Falso Negativo), salvar tabelas consolidadas em `results/tables/` e gerar os gráficos comparativos e painéis qualitativos em `results/figures/`.
 
 ---
 
