@@ -5,6 +5,7 @@ Este documento serve como a **especificação técnica e metodológica definitiv
 ---
 
 ## 1. Visão Geral do Artigo e Pergunta Científica
+Link para o dataset: https://www.kaggle.com/datasets/tawsifurrahman/covid19-radiography-database/data
 
 ### 1.1. Título do Projeto
 > **Análise da Emergência de Falsos Negativos e Confiabilidade Anatômica em CNNs e Vision Transformers sob Escassez de Dados em Radiografias de Tórax**
