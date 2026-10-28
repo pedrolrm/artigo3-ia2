@@ -21,11 +21,17 @@ Este documento serve como a **especificação técnica e metodológica definitiv
 
 ## 2. Descrição e Especificação dos Dados
 
-### 2.1. Origem e Localização do Dataset
+### 2.1. Origem, Resolução Real e Padronização dos Dados
 * **Base:** *COVID-19 Radiography Database* (V2 / Update 2).
 * **Arquivo Fonte:** `C:\Users\pluca\Downloads\COVID-19_Radiography_Dataset.zip`
-* **Formato:** Imagens em formato PNG (resolução original $299 \times 299$ pixels).
-* **Anotações Anatômicas:** Cada radiografia possui sua respectiva **máscara binária de segmentação dos campos pulmonares** na pasta `masks/`.
+* **Formato e Resoluções Nativas dos Arquivos:**
+  - **Radiografias de Tórax (`images/`):** Arquivos PNG na resolução original de **$299 \times 299$ pixels**.
+  - **Máscaras Pulmonares Anatômicas (`masks/`):** Arquivos PNG na resolução original de **$256 \times 256$ pixels**.
+* **Requisito Obrigatório de Pré-processamento e Alinhamento ($224 \times 224$):**
+  - Tanto a `ResNet-50` quanto o `ViT-Small` exigem entrada em **$224 \times 224$ pixels** (para o ViT dividir em $14 \times 14$ patches de $16 \times 16$).
+  - **Radiografias:** Redimensionadas de $299 \times 299 \to 224 \times 224$ via interpolação bilinear/bicúbica e normalização ImageNet.
+  - **Máscaras Pulmonares:** Redimensionadas de $256 \times 256 \to 224 \times 224$ **estritamente via interpolação `nearest-neighbor`** para manter os valores discretos binários $\{0, 1\}$ sem criar artefatos fracionários nas margens pulmonares.
+  - Isso garante que no cálculo de Grad-CAM, a radiografia, a máscara e o mapa de calor estejam exatamente no mesmo sistema de coordenadas $224 \times 224$ pixel a pixel.
 
 ### 2.2. Classes Originais e Agrupamento Binário
 
@@ -133,7 +139,10 @@ artigo3-ia2/
 ├── src/
 │   ├── __init__.py
 │   ├── dataset.py               # Carregador de raio-X e máscaras com pareamento
-│   ├── models.py                # Instanciação da ResNet-50 e ViT-Small via timm
+│   ├── models/                  # Subpacote de instanciação das arquiteturas
+│   │   ├── __init__.py          # Exporta funções de instanciação e contagem de parâmetros
+│   │   ├── resnet.py            # Instanciação da ResNet-50 via timm e camada-alvo Grad-CAM
+│   │   └── vit.py               # Instanciação do ViT-Small via timm e reshape_transform
 │   ├── train.py                 # Loop de treinamento com validação e early stopping
 │   ├── evaluate.py              # Cálculo de métricas diagnósticas (AUROC, FNR, etc.)
 │   ├── xai.py                   # Implementação do Grad-CAM (CNN e ViT com reshape)
@@ -154,9 +163,15 @@ artigo3-ia2/
 * **`src/dataset.py`:**
   - **Função:** Implementar a classe PyTorch `Dataset` (`ChestXRayDataset`) que carrega pares de radiografias de tórax e respectivas máscaras pulmonares a partir dos manifestos CSV.
   - **Requisitos de Implementação:** Carregar imagens em formato RGB ($224 \times 224$) com normalização ImageNet. Quando `return_mask=True`, carregar e redimensionar a máscara binária correspondente utilizando estritamente interpolação `nearest` para preservar valores discretos $\{0, 1\}$.
-* **`src/models.py`:**
-  - **Função:** Fábrica de instanciação de modelos com paridade de parâmetros (~22M vs ~25M).
-  - **Requisitos de Implementação:** Instanciar `resnet50` e `vit_small_patch16_224` via biblioteca `timm` com pesos oficiais do ImageNet-1k e cabeça binária (2 classes ou 1 logit). Expor funções auxiliares para contagem de parâmetros e identificação da camada-alvo para Grad-CAM (`layer4[-1]` na ResNet e `blocks[-1].norm1` no ViT, com função de `reshape_transform` para os tokens do Transformer).
+* **`src/models/` (Subpacote de Arquiteturas):**
+  - **`src/models/resnet.py`:**
+    - **Função:** Instanciação da CNN representativa (`resnet50` via `timm`) com pesos ImageNet-1k e cabeça binária (2 classes).
+    - **Requisitos de Implementação:** Expor função para retorno do modelo e identificação da camada-alvo para Grad-CAM (`model.layer4[-1]`).
+  - **`src/models/vit.py`:**
+    - **Função:** Instanciação do Vision Transformer representativo (`vit_small_patch16_224` via `timm`) com pesos ImageNet-1k e cabeça binária (2 classes).
+    - **Requisitos de Implementação:** Expor função para retorno do modelo, identificação da camada-alvo para Grad-CAM (`model.blocks[-1].norm1`) e a função `reshape_transform` (que descarta o token `[CLS]` e faz o reshape dos 196 tokens espaciais para o grid $14 \times 14$ canais).
+  - **`src/models/__init__.py`:**
+    - **Função:** Ponto de entrada do subpacote, exportando uma função unificada de fábrica (`build_model(architecture: str, pretrained: bool = True, num_classes: int = 2)`) e utilitários de contagem de parâmetros (`count_parameters`).
 * **`src/train.py`:**
   - **Função:** Gerenciador do loop de treinamento e validação para um dado modelo e regime.
   - **Requisitos de Implementação:** Receber modelo, loaders de treino e validação, configurando otimizador `AdamW` ($weight\_decay = 1\times 10^{-2}$), scheduler com warmup e cosine decay. Executar *early stopping* monitorando o AUROC de validação (paciência de 7 épocas) e persistir o melhor checkpoint em `results/checkpoints/`.

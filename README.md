@@ -18,7 +18,10 @@ artigo3-ia2/
 ├── src/
 │   ├── __init__.py
 │   ├── dataset.py               # Carregador de raio-X e máscaras com pareamento
-│   ├── models.py                # Instanciação da ResNet-50 e ViT-Small via timm
+│   ├── models/                  # Subpacote de arquiteturas
+│   │   ├── __init__.py          # Fábrica de modelos unificada
+│   │   ├── resnet.py            # Instanciação da ResNet-50 via timm e camada Grad-CAM
+│   │   └── vit.py               # Instanciação do ViT-Small via timm e reshape Grad-CAM
 │   ├── train.py                 # Loop de treinamento com validação e early stopping
 │   ├── evaluate.py              # Cálculo de métricas diagnósticas (AUROC, FNR, etc.)
 │   ├── xai.py                   # Implementação do Grad-CAM (CNN e ViT com reshape)
