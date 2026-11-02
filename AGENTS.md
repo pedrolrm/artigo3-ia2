@@ -208,3 +208,104 @@ artigo3-ia2/
 2. **Transparência de Código:** Documente no cabeçalho de cada script qual regime e modelo estão sendo manipulados.
 3. **Tratamento de Máscaras:** Assegure-se de que a máscara binária correspondente à imagem de raio-X seja redimensionada exatamente da mesma forma ($224 \times 224$ com interpolação `nearest`) para que a validação anatômica não sofra degradação geométrica.
 4. **Isolamento de Teste:** O conjunto de teste **nunca** deve ser utilizado durante o ajuste de hiperparâmetros, *early stopping* ou treinamento. Ele é reservado exclusivamente para a inferência final de diagnóstico e extração de Grad-CAM.
+
+---
+
+## 8. Referências Bibliográficas Selecionadas e Justificativa Metodológica
+
+Para garantir o rigor acadêmico e respaldar formalmente as contribuições do artigo perante revisores de periódicos e conferências de ponta (ex: IEEE, Elsevier, Springer, Nature), foram selecionadas 14 referências estratégicas divididas em 4 blocos temáticos.
+
+### 8.1. Bloco de Referências em Formato LaTeX (Padrão `IEEEtran`)
+
+```latex
+\bibliographystyle{IEEEtran}
+\begin{thebibliography}{00}
+
+% --- BLOCO 1: BASE DE DADOS E VALIDAÇÃO DE MÁSCARAS ---
+\bibitem{chowdhury2020can}
+M.~E.~H. Chowdhury, T.~Rahman, A.~Khandakar, R.~Mazhar, M.~A. Kadir, Z.~B. Mahbub, K.~R. Islam, M.~S. Khan, A.~Iqbal, N.~Al-Emadi, M.~B.~I. Reaz, and M.~T. Islam, ``Can AI help in screening Viral and COVID-19 pneumonia?'' \emph{IEEE Access}, vol.~8, pp. 132665--132676, 2020.
+
+\bibitem{rahman2021exploring}
+T.~Rahman, A.~Khandakar, Y.~Qiblawey, A.~Tahir, S.~Kiranyaz, S.~B.~A. Kashem, M.~T. Islam, S.~Al-Maadeed, S.~M. Zughaier, M.~S. Khan, and M.~E.~H. Chowdhury, ``Exploring the effect of image enhancement techniques on COVID-19 detection using chest X-ray images,'' \emph{Computers in Biology and Medicine}, vol. 132, p. 104319, 2021.
+
+\bibitem{kaggle_covid19_radiography}
+M.~E.~H. Chowdhury, T.~Rahman, and A.~Khandakar, ``COVID-19 Radiography Database,'' \emph{Kaggle}, 2020. [Online]. Available: https://www.kaggle.com/datasets/tawsifurrahman/covid19-radiography-database
+
+% --- BLOCO 2: ARQUITETURAS E HIPÓTESE DE VIÉS INDUTIVO ---
+\bibitem{he2016deep}
+K.~He, X.~Zhang, S.~Ren, and J.~Sun, ``Deep residual learning for image recognition,'' in \emph{Proc. IEEE Conf. Comput. Vis. Pattern Recognit. (CVPR)}, 2016, pp. 770--778.
+
+\bibitem{dosovitskiy2020image}
+A.~Dosovitskiy \emph{et al.}, ``An image is worth 16x16 words: Transformers for image recognition at scale,'' in \emph{Proc. Int. Conf. Learn. Represent. (ICLR)}, 2021.
+
+\bibitem{raghu2021vision}
+M.~Raghu, T.~Unterthiner, S.~Kornblith, C.~Zhang, and A.~Dosovitskiy, ``Do vision transformers see like convolutional neural networks?'' in \emph{Proc. Adv. Neural Inf. Process. Syst. (NeurIPS)}, vol.~34, 2021, pp. 12116--12128.
+
+\bibitem{matsoukas2021time}
+C.~Matsoukas, J.~F. Haslum, M.~Moein, A.~Rakhlin, I.~Hakansson, and K.~Smith, ``Is it time to replace {CNNs} with transformers for medical images?'' \emph{Med. Image Anal.}, vol.~74, p. 102246, 2021.
+
+% --- BLOCO 3: MÉTODOS DE XAI E AVALIAÇÃO ANATÔMICA ---
+\bibitem{selvaraju2017grad}
+R.~R. Selvaraju \emph{et al.}, ``{Grad-CAM}: Visual explanations from deep networks via gradient-based localization,'' in \emph{Proc. IEEE Int. Conf. Comput. Vis. (ICCV)}, 2017, pp. 618--626.
+
+\bibitem{abnar2020quantifying}
+S.~Abnar and W.~Zuidema, ``Quantifying attention flow in transformers,'' in \emph{Proc. 58th Annu. Meeting Assoc. Comput. Linguistics (ACL)}, 2020, pp. 4247--4256.
+
+\bibitem{zhang2018top}
+J.~Zhang \emph{et al.}, ``Top-down neural attention by excitation backprop,'' \emph{Int. J. Comput. Vis.}, vol. 126, no.~10, pp. 1084--1102, 2018.
+
+% --- BLOCO 4: O PARADOXO DO AUROC, SHORTCUTS E RISCO CLÍNICO ---
+\bibitem{oakden2020hidden}
+L.~Oakden-Rayner \emph{et al.}, ``Hidden stratification causes clinically meaningful failures in machine learning for medical imaging,'' \emph{Nat. Med.}, vol.~26, no.~4, pp. 536--539, 2020.
+
+\bibitem{degrave2021ai}
+A.~J. DeGrave, J.~D. Janizek, and S.-I. Lee, ``{AI} for radiographic {COVID-19} detection selects shortcuts over pathology,'' \emph{Nat. Mach. Intell.}, vol.~3, no.~7, pp. 610--619, 2021.
+
+\bibitem{saporta2022benchmarking}
+A.~Saporta \emph{et al.}, ``Benchmarking saliency methods for chest {X}-ray interpretation,'' \emph{Nat. Mach. Intell.}, vol.~4, no.~10, pp. 867--878, 2022.
+
+\bibitem{wong2020frequency}
+H.~Y.~F. Wong \emph{et al.}, ``Frequency and distribution of chest radiographic findings in patients positive for {COVID-19},'' \emph{Radiology}, vol. 296, no.~2, pp. E72--E78, 2020.
+
+\end{thebibliography}
+```
+
+---
+
+### 8.2. Justificativa Teórica e Metodológica para Cada Escolha
+
+#### Bloco 1: Base de Dados e Validação de Máscaras
+1. **`chowdhury2020can` (IEEE Access 2020):**
+   - *Motivo:* Artigo formal original dos criadores da base *COVID-19 Radiography Database*. Seu uso é mandatório para documentar a procedência clínica das 21.165 imagens na resolução nativa de $299 \times 299$.
+2. **`rahman2021exploring` (Computers in Biology and Medicine 2021):**
+   - *Motivo:* Artigo formal de expansão da base (Update 2), onde foram introduzidas as máscaras anatômicas pulmonares ($256 \times 256$) validadas por radiologistas. Indispensável para justificar o *ground-truth* anatômico usado nas métricas de XAI (EFL e Pointing Game).
+3. **`kaggle_covid19_radiography` (Kaggle 2020):**
+   - *Motivo:* Registro público e reprodutível do repositório da base (vencedor do COVID-19 Dataset Award), garantindo link direto de acesso conforme as boas práticas de dados abertos.
+
+#### Bloco 2: Arquiteturas e Hipótese de Viés Indutivo
+4. **`he2016deep` (CVPR 2016):**
+   - *Motivo:* Artigo seminal da arquitetura ResNet-50. Fundamenta o funcionamento das conexões residuais (*skip connections*) e o viés indutivo clássico de localidade convolucional e equivariância à translação.
+5. **`dosovitskiy2020image` (ICLR 2021):**
+   - *Motivo:* Artigo seminal do Vision Transformer (ViT). Fundamenta matematicamente a divisão em patches ($16 \times 16$) e prova formalmente que o ViT prescinde de viés indutivo espacial, explicando por que ele depende de grandes volumes de dados para convergir sem memorização espúria.
+6. **`raghu2021vision` (NeurIPS 2021):**
+   - *Motivo:* Estudo comparativo rigoroso provando que ViTs possuem atenção global uniforme desde as camadas iniciais, ao contrário das CNNs que constroem representações progressivas de baixo para alto nível. Justifica por que o ViT se dispersa espacialmente quando faltam amostras de treino.
+7. **`matsoukas2021time` (Medical Image Analysis 2021):**
+   - *Motivo:* Primeiro trabalho de grande impacto a transpor o confronto CNN vs. ViT para imagens médicas, apontando que Transformers sofrem severamente em bases de dados médicas de escala tradicional/escassa frente a CNNs consagradas.
+
+#### Bloco 3: Métodos de XAI e Avaliação Anatômica
+8. **`selvaraju2017grad` (ICCV 2017):**
+   - *Motivo:* Artigo criador do Grad-CAM. Fundamenta o cálculo dos mapas de saliência ponderados pelos gradientes médios da última camada convolucional da ResNet-50 e pela projeção de ativações espaciais no ViT.
+9. **`abnar2020quantifying` (ACL 2020):**
+   - *Motivo:* Artigo criador do método Attention Rollout ($\hat{A} = 0.5A + 0.5I$), implementado em `src/xai.py` para rastrear o fluxo atencional recursivo através dos blocos de autoatenção do ViT.
+10. **`zhang2018top` (IJCV 2018):**
+    - *Motivo:* Artigo de referência que estabelece formalmente o *Pointing Game* (*Hit Rate* binário), métrica que afere se o pico de ativação ($\arg\max A(x, y)$) reside dentro da anotação pulmonar real.
+
+#### Bloco 4: O Paradoxo do AUROC, Shortcuts e Risco Clínico
+11. **`oakden2020hidden` (Nature Medicine 2020):**
+    - *Motivo:* Artigo de referência essencial para explicar o **Paradoxo do AUROC**: demonstra empiricamente como modelos em radiologia com AUROC elevado (>0,95) mascaram colapsos clínicos catastróficos em pontos de operação e sensibilidade diagnóstica (exatamente o que ocorreu no nosso regime de 5%, onde o ViT teve AUROC de 0,9669 mas FNR de 25,14%).
+12. **`degrave2021ai` (Nature Machine Intelligence 2021):**
+    - *Motivo:* Estudo definitivo sobre aprendizado de atalhos (*shortcut learning*) em raio-X de tórax para COVID-19, provando que redes neurais frequentemente memorizam marcadores de chumbo, tubos e bordas do detector em vez da patologia pulmonar real. Fundamenta a nossa métrica de *Background Leakage* ($1 - \text{EFL}$).
+13. **`saporta2022benchmarking` (Nature Machine Intelligence 2022):**
+    - *Motivo:* O maior benchmark recente de métodos de saliência em radiografias de tórax utilizando máscaras ground-truth de radiologistas, validando a metodologia de sobreposição e interseção de mapas de calor adotada neste artigo.
+14. **`wong2020frequency` (Radiology 2020):**
+    - *Motivo:* Fornece a justificativa clínica hospitalar sobre a assimetria do custo do erro na triagem de emergência: falsos negativos em infecções respiratórias atrasam intervenções vitais e amplificam o contágio comunitário e hospitalar.
