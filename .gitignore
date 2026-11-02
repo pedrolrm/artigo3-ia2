@@ -66,6 +66,7 @@ results/checkpoints/*
 
 results/logs/*
 !results/logs/.gitkeep
+!results/logs/*.csv
 
 results/tables/*
 !results/tables/.gitkeep
