@@ -70,6 +70,7 @@ results/logs/*
 
 results/tables/*
 !results/tables/.gitkeep
+!results/tables/*.csv
 
 results/figures/*
 !results/figures/.gitkeep
