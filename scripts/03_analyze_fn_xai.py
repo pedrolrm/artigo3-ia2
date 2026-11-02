@@ -158,8 +158,10 @@ def evaluate_regime_xai(
             })
 
     detailed_df = pd.DataFrame(records)
-    detailed_csv_path = os.path.join(output_tables_dir, f"{architecture}_regime{regime}_detailed_test.csv")
+    detailed_csv_path = os.path.join(output_tables_dir, f"{architecture}_regime{regime}_{xai_method}_detailed_test.csv")
     detailed_df.to_csv(detailed_csv_path, index=False)
+    # Salva também sem sufixo para compatibilidade
+    detailed_df.to_csv(os.path.join(output_tables_dir, f"{architecture}_regime{regime}_detailed_test.csv"), index=False)
     print(f"Tabela detalhada salva em: {detailed_csv_path}")
 
     # Métricas clínicas globais
@@ -209,7 +211,7 @@ def evaluate_regime_xai(
     return summary, detailed_df
 
 
-def plot_regime_trends(summary_df: pd.DataFrame, output_dir: str, architecture: str):
+def plot_regime_trends(summary_df: pd.DataFrame, output_dir: str, architecture: str, xai_method: str = "rollout"):
     """Gera gráficos de linha mostrando o comportamento das métricas com o aumento de dados."""
     os.makedirs(output_dir, exist_ok=True)
     summary_df = summary_df.sort_values(by="regime_num")
@@ -229,7 +231,8 @@ def plot_regime_trends(summary_df: pd.DataFrame, output_dir: str, architecture: 
         axes[1].plot(summary_df["regime_num"], summary_df["fn_entropy_mean"], marker="^", color="darkred", linestyle="--", label="Grupo Falso Negativo (FN)", linewidth=2)
     if "tp_entropy_mean" in summary_df.columns and not summary_df["tp_entropy_mean"].isna().all():
         axes[1].plot(summary_df["regime_num"], summary_df["tp_entropy_mean"], marker="v", color="darkgreen", linestyle="--", label="Grupo Verdadeiro Positivo (TP)", linewidth=2)
-    axes[1].set_title("Dispersão Atencional (Entropia Espacial)")
+    xai_name = "Attention Rollout" if "rollout" in xai_method.lower() else "Grad-CAM"
+    axes[1].set_title(f"Dispersão ({xai_name})")
     axes[1].set_xlabel("% de Dados de Treino")
     axes[1].set_ylabel("Entropia Normalizada [0, 1]")
     axes[1].legend()
@@ -245,7 +248,7 @@ def plot_regime_trends(summary_df: pd.DataFrame, output_dir: str, architecture: 
     axes[2].grid(True, linestyle="--", alpha=0.6)
 
     plt.tight_layout()
-    plot_path = os.path.join(output_dir, f"{architecture}_regime_trends.png")
+    plot_path = os.path.join(output_dir, f"{architecture}_{xai_method}_regime_trends.png")
     plt.savefig(plot_path, dpi=300)
     plt.close()
     print(f"Gráfico de tendências salvo em: {plot_path}")
@@ -317,10 +320,11 @@ def generate_qualitative_fn_panel(
         axes[idx, 1].set_title("Máscara Anatômica Pulmonar")
         axes[idx, 1].axis("off")
 
-        # 3. Mapa de Atenção (Attention Rollout)
+        # 3. Mapa de Explicabilidade (Rollout ou Grad-CAM)
+        xai_name = "Attention Rollout" if "rollout" in xai_method.lower() else "Grad-CAM"
         axes[idx, 2].imshow(img_np)
         axes[idx, 2].imshow(cam_map, cmap="jet", alpha=0.5)
-        axes[idx, 2].set_title(f"Attention Rollout\nEntropia: {row['spatial_entropy']:.3f}")
+        axes[idx, 2].set_title(f"{xai_name}\nEntropia: {row['spatial_entropy']:.3f}")
         axes[idx, 2].axis("off")
 
         # 4. Background Leakage / Confiabilidade
@@ -330,9 +334,9 @@ def generate_qualitative_fn_panel(
         axes[idx, 3].set_title(f"Vazamento Fora do Pulmão\nLeakage: {row['background_leakage']*100:.1f}% | EFL: {row['efl']*100:.1f}%")
         axes[idx, 3].axis("off")
 
-    plt.suptitle(f"Auditoria de Falsos Negativos (FN) - {architecture} (Regime {regime}%) via Attention Rollout", fontsize=15, y=1.00)
+    plt.suptitle(f"Auditoria de Falsos Negativos (FN) - {architecture} (Regime {regime}%) via {xai_name}", fontsize=15, y=1.00)
     plt.tight_layout()
-    out_panel = os.path.join(output_dir, f"{architecture}_regime{regime}_fn_panel.png")
+    out_panel = os.path.join(output_dir, f"{architecture}_regime{regime}_{xai_method}_fn_panel.png")
     plt.savefig(out_panel, dpi=300, bbox_inches="tight")
     plt.close()
     print(f"Painel qualitativo de FN salvo em: {out_panel}")
@@ -391,11 +395,12 @@ def main():
     if len(summaries) > 0:
         summary_df = pd.DataFrame(summaries)
         summary_df["regime_num"] = summary_df["regime"].astype(int)
-        summary_csv_path = os.path.join(args.tables_dir, f"{args.architecture}_xai_summary.csv")
+        summary_csv_path = os.path.join(args.tables_dir, f"{args.architecture}_{args.xai_method}_xai_summary.csv")
         summary_df.to_csv(summary_csv_path, index=False)
+        summary_df.to_csv(os.path.join(args.tables_dir, f"{args.architecture}_xai_summary.csv"), index=False)
         print(f"\nTabela consolidada salva em: {summary_csv_path}")
 
-        plot_regime_trends(summary_df, args.figures_dir, args.architecture)
+        plot_regime_trends(summary_df, args.figures_dir, args.architecture, xai_method=args.xai_method)
     else:
         print("\nNenhum checkpoint avaliado. Execute o treinamento primeiro via scripts/02_run_experiments.py")
 
