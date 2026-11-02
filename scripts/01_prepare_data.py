@@ -8,8 +8,68 @@ Mapeamento binário:
 
 import os
 import argparse
+import zipfile
+from typing import Optional
 import pandas as pd
 from sklearn.model_selection import train_test_split
+
+
+def locate_or_extract_dataset(
+    data_dir: Optional[str] = None,
+    zip_path: Optional[str] = None,
+    raw_dir: str = "data/raw"
+) -> str:
+    """
+    Localiza o diretório do dataset ou extrai automaticamente do arquivo ZIP
+    conforme as diretrizes do AGENTS.md.
+    """
+    candidates = []
+    if data_dir:
+        candidates.append(data_dir)
+    candidates.extend([
+        os.path.join(raw_dir, "COVID-19_Radiography_Dataset"),
+        raw_dir,
+        r"C:\Users\pluca\Downloads\COVID-19_Radiography_Dataset",
+        r"C:\Users\jonat\Desktop\ARTIGO 3\DATASET\COVID-19_Radiography_Dataset",
+    ])
+
+    for cand in candidates:
+        if os.path.exists(cand) and os.path.exists(os.path.join(cand, "Normal", "images")):
+            print(f"Dataset encontrado em: {cand}")
+            return cand
+
+    # Se não encontrado nas pastas, tenta extrair do arquivo ZIP
+    zip_candidates = []
+    if zip_path:
+        zip_candidates.append(zip_path)
+    zip_candidates.extend([
+        r"C:\Users\pluca\Downloads\COVID-19_Radiography_Dataset.zip",
+        os.path.join(raw_dir, "COVID-19_Radiography_Dataset.zip"),
+        "COVID-19_Radiography_Dataset.zip",
+    ])
+
+    found_zip = None
+    for zc in zip_candidates:
+        if os.path.exists(zc):
+            found_zip = zc
+            break
+
+    if found_zip:
+        print(f"Arquivo ZIP encontrado: {found_zip}")
+        print(f"Extraindo para {raw_dir} (pode levar alguns instantes)...")
+        os.makedirs(raw_dir, exist_ok=True)
+        with zipfile.ZipFile(found_zip, "r") as zf:
+            zf.extractall(raw_dir)
+        print("Extração concluída!")
+
+        for cand in candidates:
+            if os.path.exists(cand) and os.path.exists(os.path.join(cand, "Normal", "images")):
+                return cand
+
+    raise FileNotFoundError(
+        "Diretório do dataset ou arquivo ZIP não encontrado. "
+        "Especifique via --data_dir ou coloque o arquivo ZIP em data/raw/ ou Downloads."
+    )
 
 
 def build_manifest(data_dir: str):
@@ -131,8 +191,14 @@ def main():
     parser.add_argument(
         "--data_dir",
         type=str,
-        default=r"C:\Users\jonat\Desktop\ARTIGO 3\DATASET\COVID-19_Radiography_Dataset",
+        default=None,
         help="Caminho para o diretório raiz descompactado do dataset"
+    )
+    parser.add_argument(
+        "--zip_path",
+        type=str,
+        default=None,
+        help="Caminho alternativo para o arquivo ZIP do dataset"
     )
     parser.add_argument(
         "--output_dir",
@@ -148,7 +214,8 @@ def main():
     )
     args = parser.parse_args()
 
-    df = build_manifest(args.data_dir)
+    dataset_path = locate_or_extract_dataset(data_dir=args.data_dir, zip_path=args.zip_path)
+    df = build_manifest(dataset_path)
     split_and_save_manifests(df, args.output_dir, seed=args.seed)
     print("\nPreparação de dados concluída com sucesso!")
 
