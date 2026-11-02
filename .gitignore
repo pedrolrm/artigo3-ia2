@@ -74,6 +74,7 @@ results/tables/*
 
 results/figures/*
 !results/figures/.gitkeep
+!results/figures/*.png
 
 # Zip files
 *.zip

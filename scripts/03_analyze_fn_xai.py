@@ -212,46 +212,59 @@ def evaluate_regime_xai(
 
 
 def plot_regime_trends(summary_df: pd.DataFrame, output_dir: str, architecture: str, xai_method: str = "rollout"):
-    """Gera gráficos de linha mostrando o comportamento das métricas com o aumento de dados."""
+    """Generates line plots illustrating metric trajectories across data regimes in English."""
     os.makedirs(output_dir, exist_ok=True)
     summary_df = summary_df.sort_values(by="regime_num")
 
     fig, axes = plt.subplots(1, 3, figsize=(18, 5))
 
-    # 1. Taxa de Falsos Negativos (FNR)
+    # 1. False Negative Rate (FNR)
     axes[0].plot(summary_df["regime_num"], summary_df["fnr"] * 100, marker="o", color="crimson", linewidth=2.5)
-    axes[0].set_title(f"Emergência de Falsos Negativos (FNR) - {architecture}")
-    axes[0].set_xlabel("% de Dados de Treino")
+    axes[0].set_title("False Negative Rate (FNR)")
+    axes[0].set_xlabel("Training Data Volume (%)")
     axes[0].set_ylabel("FNR (%)")
     axes[0].grid(True, linestyle="--", alpha=0.6)
 
-    # 2. Entropia Espacial
-    axes[1].plot(summary_df["regime_num"], summary_df["overall_entropy_mean"], marker="s", color="royalblue", label="Média Geral", linewidth=2)
+    # 2. Spatial Entropy
+    axes[1].plot(summary_df["regime_num"], summary_df["overall_entropy_mean"], marker="s", color="royalblue", label="Overall Mean", linewidth=2)
     if "fn_entropy_mean" in summary_df.columns and not summary_df["fn_entropy_mean"].isna().all():
-        axes[1].plot(summary_df["regime_num"], summary_df["fn_entropy_mean"], marker="^", color="darkred", linestyle="--", label="Grupo Falso Negativo (FN)", linewidth=2)
+        axes[1].plot(summary_df["regime_num"], summary_df["fn_entropy_mean"], marker="^", color="darkred", linestyle="--", label="False Negative (FN) Group", linewidth=2)
     if "tp_entropy_mean" in summary_df.columns and not summary_df["tp_entropy_mean"].isna().all():
-        axes[1].plot(summary_df["regime_num"], summary_df["tp_entropy_mean"], marker="v", color="darkgreen", linestyle="--", label="Grupo Verdadeiro Positivo (TP)", linewidth=2)
+        axes[1].plot(summary_df["regime_num"], summary_df["tp_entropy_mean"], marker="v", color="darkgreen", linestyle="--", label="True Positive (TP) Group", linewidth=2)
     xai_name = "Attention Rollout" if "rollout" in xai_method.lower() else "Grad-CAM"
-    axes[1].set_title(f"Dispersão ({xai_name})")
-    axes[1].set_xlabel("% de Dados de Treino")
-    axes[1].set_ylabel("Entropia Normalizada [0, 1]")
+    axes[1].set_title("Spatial Shannon Entropy")
+    axes[1].set_xlabel("Training Data Volume (%)")
+    axes[1].set_ylabel("Normalized Shannon Entropy [0, 1]")
     axes[1].legend()
     axes[1].grid(True, linestyle="--", alpha=0.6)
 
-    # 3. Fração de Energia no Pulmão (EFL) e Leakage
-    axes[2].plot(summary_df["regime_num"], summary_df["overall_efl_mean"] * 100, marker="o", color="forestgreen", label="EFL no Pulmão (%)", linewidth=2)
-    axes[2].plot(summary_df["regime_num"], summary_df["overall_leakage_mean"] * 100, marker="x", color="purple", label="Vazamento para Fundo (%)", linewidth=2)
-    axes[2].set_title("Confiabilidade Anatômica (EFL vs Leakage)")
-    axes[2].set_xlabel("% de Dados de Treino")
-    axes[2].set_ylabel("Porcentagem (%)")
+    # 3. Energy Fraction inside Lung (EFL) and Leakage
+    axes[2].plot(summary_df["regime_num"], summary_df["overall_efl_mean"] * 100, marker="o", color="forestgreen", label="Energy inside Lung (EFL %)", linewidth=2)
+    axes[2].plot(summary_df["regime_num"], summary_df["overall_leakage_mean"] * 100, marker="x", color="purple", label="Background Leakage (%)", linewidth=2)
+    axes[2].set_title("Energy Inside Lung vs. Leakage")
+    axes[2].set_xlabel("Training Data Volume (%)")
+    axes[2].set_ylabel("Percentage (%)")
     axes[2].legend()
     axes[2].grid(True, linestyle="--", alpha=0.6)
 
     plt.tight_layout()
-    plot_path = os.path.join(output_dir, f"{architecture}_{xai_method}_regime_trends.png")
-    plt.savefig(plot_path, dpi=300)
-    plt.close()
-    print(f"Gráfico de tendências salvo em: {plot_path}")
+    plot_path = os.path.abspath(os.path.join(output_dir, f"{architecture}_{xai_method}_regime_trends.png"))
+    tmp_path = plot_path + ".tmp.png"
+    for attempt in range(5):
+        try:
+            with open(tmp_path, "wb") as f:
+                fig.savefig(f, dpi=300)
+            if os.path.exists(plot_path):
+                try:
+                    os.remove(plot_path)
+                except Exception:
+                    pass
+            os.replace(tmp_path, plot_path)
+            break
+        except Exception:
+            time.sleep(0.5)
+    plt.close(fig)
+    print(f"Trends plot saved to: {plot_path}")
 
 
 def generate_qualitative_fn_panel(
@@ -264,11 +277,11 @@ def generate_qualitative_fn_panel(
     xai_method: str = "rollout",
     num_samples: int = 4
 ):
-    """Gera um painel qualitativo visual destacando casos de Falsos Negativos."""
+    """Generates a qualitative visual panel highlighting False Negative cases in English."""
     os.makedirs(output_dir, exist_ok=True)
     fn_samples = detailed_df[detailed_df["group"] == "FN"]
     if len(fn_samples) == 0:
-        print(f"[Aviso] Nenhum falso negativo encontrado para o regime {regime}%. Pulando painel qualitativo.")
+        print(f"[Notice] No false negatives found for regime {regime}%. Skipping qualitative panel.")
         return
 
     test_df = pd.read_csv(test_manifest)
@@ -310,36 +323,49 @@ def generate_qualitative_fn_panel(
         mask_np = mask_tensor.squeeze().numpy()
         row = selected_rows.iloc[idx]
 
-        # 1. Radiografia Original
+        # 1. Original Radiograph
         axes[idx, 0].imshow(img_np)
-        axes[idx, 0].set_title(f"Radiografia Patológica (Label 1)\nPred: {row['y_prob']:.2f} (Predito Saudável)")
+        axes[idx, 0].set_title(f"Pathological CXR\nPred: {row['y_prob']:.2f}")
         axes[idx, 0].axis("off")
 
-        # 2. Máscara Pulmonar Real
+        # 2. Ground-Truth Lung Mask
         axes[idx, 1].imshow(mask_np, cmap="gray")
-        axes[idx, 1].set_title("Máscara Anatômica Pulmonar")
+        axes[idx, 1].set_title("Ground-Truth Mask")
         axes[idx, 1].axis("off")
 
-        # 3. Mapa de Explicabilidade (Rollout ou Grad-CAM)
+        # 3. Explainability Map (Rollout or Grad-CAM)
         xai_name = "Attention Rollout" if "rollout" in xai_method.lower() else "Grad-CAM"
         axes[idx, 2].imshow(img_np)
         axes[idx, 2].imshow(cam_map, cmap="jet", alpha=0.5)
-        axes[idx, 2].set_title(f"{xai_name}\nEntropia: {row['spatial_entropy']:.3f}")
+        axes[idx, 2].set_title(f"{xai_name}\nEntropy: {row['spatial_entropy']:.3f}")
         axes[idx, 2].axis("off")
 
-        # 4. Background Leakage / Confiabilidade
+        # 4. Background Leakage / Distraction
         leakage_map = cam_map * (1.0 - mask_np)
         axes[idx, 3].imshow(img_np)
         axes[idx, 3].imshow(leakage_map, cmap="hot", alpha=0.6)
-        axes[idx, 3].set_title(f"Vazamento Fora do Pulmão\nLeakage: {row['background_leakage']*100:.1f}% | EFL: {row['efl']*100:.1f}%")
+        axes[idx, 3].set_title(f"Background Leakage\nLeak: {row['background_leakage']*100:.1f}% | EFL: {row['efl']*100:.1f}%")
         axes[idx, 3].axis("off")
 
-    plt.suptitle(f"Auditoria de Falsos Negativos (FN) - {architecture} (Regime {regime}%) via {xai_name}", fontsize=15, y=1.00)
+    plt.suptitle(f"Qualitative False Negative Audit: {architecture.upper()} ({regime}% Regime)", fontsize=13, y=1.00)
     plt.tight_layout()
-    out_panel = os.path.join(output_dir, f"{architecture}_regime{regime}_{xai_method}_fn_panel.png")
-    plt.savefig(out_panel, dpi=300, bbox_inches="tight")
-    plt.close()
-    print(f"Painel qualitativo de FN salvo em: {out_panel}")
+    out_panel = os.path.abspath(os.path.join(output_dir, f"{architecture}_regime{regime}_{xai_method}_fn_panel.png"))
+    tmp_path = out_panel + ".tmp.png"
+    for attempt in range(5):
+        try:
+            with open(tmp_path, "wb") as f:
+                fig.savefig(f, dpi=300, bbox_inches="tight")
+            if os.path.exists(out_panel):
+                try:
+                    os.remove(out_panel)
+                except Exception:
+                    pass
+            os.replace(tmp_path, out_panel)
+            break
+        except Exception:
+            time.sleep(0.5)
+    plt.close(fig)
+    print(f"Qualitative FN panel saved to: {out_panel}")
 
 
 def main():
